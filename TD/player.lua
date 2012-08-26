@@ -5,6 +5,8 @@ local player = {
 	shootingPower = 0,
 	img = "NONE_YET",
 	bowImg = "NONE_YET",
+	pistolImg = "NONE_YET",
+	machinegunImg = "NONE_YET",
 	isShooting = false,
 	t = 0,
 	velX = 0,
@@ -13,13 +15,14 @@ local player = {
 	projectiles = {},
 	currentWeapon = {
 		_type = "gun",
-		subType = "machinegun",
+		subType = "pistol",
 		speed = 3,
-		ammo = 30,
-		maxAmmo = 30
+		ammo = 11,
+		maxAmmo = 11,
+		damage = 35
 	},
 	waitTime = 0,
-	maxWaitTime = .1
+	maxWaitTime = .15
 }
 player.__index = player
 setmetatable(player, player)
@@ -37,7 +40,10 @@ function player:shoot(mx, my)
 			velX = self.velX * (self.len / speed),
 			velY = self.velY,
 			t = 0,
-			firedBy = "bow"
+			firedBy = "bow",
+			visible = true,
+			prev_x = 0,
+			prev_y = 0
 		}
 
 		table.insert(self.projectiles, t)
@@ -58,7 +64,8 @@ function player:shoot(mx, my)
 				p_y = self.y,
 				stepX = x / len,
 				stepY = y / len,
-				firedBy = "gun"
+				firedBy = "gun",
+				visible = true
 			}
 
 			table.insert(self.projectiles, t)
@@ -124,10 +131,35 @@ function player:draw()
 			if my < self.y then
 				self.shootingAngle = 2 * math.pi - self.shootingAngle
 			end
+		else
+			local x = self.x - mx
+			local y = self.y - my
+
+			local len = math.sqrt(x ^ 2 + y ^ 2)
+			self.shootingAngle = math.acos(x / len)
+
+			if my < self.y then
+				self.shootingAngle = 2 * math.pi - self.shootingAngle
+			end
+		end
+
+		if self.bowImg ~= "NONE_YET" then
+			love.graphics.setColor(255, 255, 255, 255)
+			love.graphics.draw(self.bowImg, self.x, self.y, 2 * math.pi - self.shootingAngle, 1, 1, 0, 12)
 		end
 	elseif self.currentWeapon._type == "gun" then
 		love.graphics.setColor(0, 0, 0, 164)
 		love.graphics.circle("line", love.mouse.getX(), love.mouse.getY(), 5)
+
+		local x = mx - self.x 
+		local y = my - self.y
+
+		local len = math.sqrt(x ^ 2 + y ^ 2)
+		self.shootingAngle = math.acos(x / len)
+
+		if self.y < my then
+			self.shootingAngle = 2 * math.pi - self.shootingAngle
+		end
 
 		if self.currentWeapon.subType == "machinegun" then
 			if self.waitTime >= self.maxWaitTime and love.mouse.isDown("l") then
@@ -136,11 +168,21 @@ function player:draw()
 			end
 
 			self.waitTime = self.waitTime + dt
+
+			if self.machinegunImg ~= "NONE_YET" then
+				love.graphics.setColor(255, 255, 255, 255)
+				love.graphics.draw(self.machinegunImg, self.x, self.y, 2 * math.pi - self.shootingAngle, 1, 1, 0, 8)
+			end
+		else
+			if self.pistolImg ~= "NONE_YET" then
+				love.graphics.setColor(255, 255, 255, 255)
+				love.graphics.draw(self.pistolImg, self.x, self.y, 2 * math.pi - self.shootingAngle, 1, 1, 0, 8)
+			end
 		end
 	end
 
 	for _, pro in pairs(self.projectiles) do
-		if pro ~= nil then
+		if pro ~= nil and pro.visible then
 			if pro.firedBy == "bow" then 
 				pro.velY = pro.velY + g * pro.t / 3
 
@@ -160,7 +202,7 @@ function player:draw()
 			end
 
 			if pro.p_x < 0 or pro.p_x > love.graphics.getWidth() or pro.p_y < 0 or pro.p_y > love.graphics.getHeight() then
-				pro = nil
+				pro.visible = false
 			end
 		end
 	end
@@ -169,7 +211,8 @@ function player:draw()
 	self.y = self.y - 20
 
 	if debug and self.currentWeapon._type == "gun" then
-		love.graphics.print("Ammo: " .. self.currentWeapon.ammo, 500, love.graphics.getHeight() - 12)
+		love.graphics.setColor(0, 0, 0, 255)
+		love.graphics.print("Ammo: " .. self.currentWeapon.ammo, 500, love.graphics.getHeight() - 32)
 	end
 end
 

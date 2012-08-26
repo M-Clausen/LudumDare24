@@ -15,7 +15,9 @@ function newCastle(t)
 end
 
 function castle:update(dt)
-
+	if self.health <= 0 then
+		os.exit(0)
+	end
 end
 
 function castle:draw()
